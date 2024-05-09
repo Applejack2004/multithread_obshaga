@@ -57,10 +57,15 @@ void womanExits() {
     std::lock_guard<std::mutex> lock(mtx);
     if (state == BathroomState::OCCUPIED_BY_WOMEN && woman_in_bath == 1) {
         state = BathroomState::FREE;
+        std::cout << getCurrentTime() << "Woman exits. State: " << getStateString(state) << std::endl;
         cv.notify_all();
     }
+    else
+    {
+        std::cout << getCurrentTime() << "Woman exits. State: " << getStateString(state) << std::endl;
+    }
 
-    std::cout << getCurrentTime() << "Woman exits. State: " << getStateString(state) << std::endl;
+
 }
 
 // Procedure for a man who wants to exit
@@ -68,10 +73,16 @@ void manExits() {
     std::lock_guard<std::mutex> lock(mtx);
     if (state == BathroomState::OCCUPIED_BY_MEN && man_in_bath == 1) {
         state = BathroomState::FREE;
+        std::cout << getCurrentTime() << "Man exits. State: " << getStateString(state) << std::endl;
         cv.notify_all();
+
+    }
+    else
+    {
+        std::cout << getCurrentTime() << "Man exits. State: " << getStateString(state) << std::endl;
     }
 
-    std::cout << getCurrentTime() << "Man exits. State: " << getStateString(state) << std::endl;
+
 }
 
 // Helper function to get a string representation of the bathroom state
@@ -93,98 +104,99 @@ int main() {
     while (true)
     {
         std::thread t1([&] {
-            while (true) {
-                if (womanTurn) {
-                    int womancount = countDis(gen);
 
-                    int woman_was_in_bath = 0;
+            if (womanTurn) {
+                int womancount = countDis(gen);
 
-                    // Женщины заходят в душевую или выходят
-                    while (woman_was_in_bath < womancount && woman_in_bath <= womancount) {
-                        if (getStateString(state) == "Free") {
+                int woman_was_in_bath = 0;
+
+                // Женщины заходят в душевую или выходят
+                while (woman_was_in_bath < womancount && woman_in_bath <= womancount) {
+                    if (getStateString(state) == "Free") {
+                        std::this_thread::sleep_for(std::chrono::seconds(dis(gen)));
+                        womanEnters();
+                        woman_in_bath++;
+                    }
+                    else {
+                        int tmp;
+                        if (woman_in_bath == womancount || (woman_in_bath + woman_was_in_bath) == womancount) {
+                            tmp = 0;
+                        }
+                        else {
+                            tmp = dis2(gen);
+                        }
+
+                        if (tmp == 1) {
                             std::this_thread::sleep_for(std::chrono::seconds(dis(gen)));
                             womanEnters();
                             woman_in_bath++;
                         }
                         else {
-                            int tmp;
-                            if (woman_in_bath == womancount || (woman_in_bath + woman_was_in_bath) == womancount) {
-                                tmp = 0;
-                            }
-                            else {
-                                tmp = dis2(gen);
-                            }
-
-                            if (tmp == 1) {
-                                std::this_thread::sleep_for(std::chrono::seconds(dis(gen)));
-                                womanEnters();
-                                woman_in_bath++;
-                            }
-                            else {
-                                std::this_thread::sleep_for(std::chrono::milliseconds(dis(gen)));
-                                womanExits();
-                                woman_in_bath--;
-                                woman_was_in_bath++;
-                            }
+                            std::this_thread::sleep_for(std::chrono::seconds(dis(gen)));
+                            womanExits();
+                            woman_in_bath--;
+                            woman_was_in_bath++;
                         }
                     }
-
-                    // Все женщины, которые зашли, выходят из душевой
-                   /* while (woman_in_bath > 0) {
-                        womanExits();
-                        woman_in_bath--;
-                    }*/
-
-                    womanTurn = false;
                 }
+
+                // Все женщины, которые зашли, выходят из душевой
+               /* while (woman_in_bath > 0) {
+                    womanExits();
+                    woman_in_bath--;
+                }*/
+
+                womanTurn = false;
             }
+
             });
 
         std::thread t2([&] {
-            while (true) {
-                if (!womanTurn) {
-                    int mancount = countDis(gen);
-                    int man_was_in_bath = 0;
 
-                    // Мужчины заходят в душевую или выходят
-                    while (man_was_in_bath < mancount && man_in_bath <= mancount) {
-                        if (getStateString(state) == "Free") {
+            if (!womanTurn) {
+                int mancount = countDis(gen);
+                int man_was_in_bath = 0;
+
+                // Мужчины заходят в душевую или выходят
+                while (man_was_in_bath < mancount && man_in_bath <= mancount) {
+                    if (getStateString(state) == "Free") {
+                        std::this_thread::sleep_for(std::chrono::seconds(dis(gen)));
+                        manEnters();
+                        //
+                        man_in_bath++;
+                    }
+                    else {
+                        int tmp;
+                        if (man_in_bath == mancount || (man_in_bath + man_was_in_bath) == mancount) {
+                            tmp = 0;
+                        }
+                        else {
+                            tmp = dis2(gen);
+                        }
+
+                        if (tmp == 1) {
                             std::this_thread::sleep_for(std::chrono::seconds(dis(gen)));
                             manEnters();
                             man_in_bath++;
                         }
                         else {
-                            int tmp;
-                            if (man_in_bath == mancount) {
-                                tmp = 0;
-                            }
-                            else {
-                                tmp = dis2(gen);
-                            }
-
-                            if (tmp == 1) {
-                                std::this_thread::sleep_for(std::chrono::seconds(dis(gen)));
-                                manEnters();
-                                man_in_bath++;
-                            }
-                            else {
-                                std::this_thread::sleep_for(std::chrono::milliseconds(dis(gen)));
-                                manExits();
-                                man_in_bath--;
-                                man_was_in_bath++;
-                            }
+                            std::this_thread::sleep_for(std::chrono::seconds(dis(gen)));
+                            manExits();
+                            man_in_bath--;
+                            man_was_in_bath++;
                         }
                     }
-
-                    // Все мужчины, которые зашли, выходят из душевой
-                   /* while (man_in_bath > 0) {
-                        manExits();
-                        man_in_bath--;
-                    }*/
-
-                    womanTurn = true;
                 }
+
+                // Все мужчины, которые зашли, выходят из душевой
+               /* while (man_in_bath > 0) {
+                    manExits();
+                    man_in_bath--;
+                }*/
+
+                womanTurn = true;
             }
+
             });
 
         // Stop the simulation
